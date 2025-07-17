@@ -112,7 +112,7 @@ export default function ProductDetailPage() {
   const cartItem = cartItems.find((item) => item.productId === product.productId)
   const cartQuantity = cartItem?.quantity || 0
 
-  const images = product.images || [product.heroImageSignedUrl]
+  const images = product.images || []
 
   const handleToggleFavorite = async () => {
     try {
@@ -187,7 +187,7 @@ export default function ProductDetailPage() {
         <div className="space-y-4">
           <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
             <Image
-              src={images[selectedImage] || "/placeholder.svg?height=400&width=400"}
+              src={product.heroImageSignedUrl}
               alt={productName}
               fill
               className="object-cover"
@@ -205,7 +205,7 @@ export default function ProductDetailPage() {
                   }`}
                 >
                   <Image
-                    src={image || "/placeholder.svg?height=80&width=80"}
+                    src={image}
                     alt={`${productName} ${index + 1}`}
                     width={80}
                     height={80}

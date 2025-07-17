@@ -11,12 +11,14 @@ import { useStore, type Product } from "@/lib/store"
 import { useTranslation } from "@/lib/translations"
 import { favoriteApi, cartApi } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
   product: Product
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const translations = product?.nameTranslations ?? []
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false)
   const [isLoadingCart, setIsLoadingCart] = useState(false)
   const [isLoadingQuantity, setIsLoadingQuantity] = useState(false)
@@ -34,16 +36,17 @@ export default function ProductCard({ product }: ProductCardProps) {
   const t = useTranslation(language)
   const { toast } = useToast()
 
-  const productName =
-    product.nameTranslations.find((translation) => translation.language === language)?.name ||
-    product.nameTranslations[0]?.name ||
-    "Product"
+  const productName = translations.find((t) => t.language === language)?.name ?? translations[0]?.name ?? "Product"
 
   const isFavorite = favorites.some((fav) => fav.productId === product.productId)
   const cartItem = cartItems.find((item) => item.productId === product.productId)
   const cartQuantity = cartItem?.quantity || 0
 
   const handleToggleFavorite = async () => {
+    if ("vibrate" in navigator) {
+      navigator.vibrate(10)
+    }
+
     setIsLoadingFavorite(true)
     try {
       if (isFavorite) {
@@ -73,12 +76,16 @@ export default function ProductCard({ product }: ProductCardProps) {
   }
 
   const handleAddToCart = async () => {
+    if ("vibrate" in navigator) {
+      navigator.vibrate(20)
+    }
+
     setIsLoadingCart(true)
     try {
       await cartApi.addToCart(product.productId)
       addToCart({
         productId: product.productId,
-        nameTranslations: product.nameTranslations,
+        nameTranslations: translations,
         heroImageSignedUrl: product.heroImageSignedUrl,
         measurementPrice: product.measurementSellingPrice,
         quantity: 1,
@@ -119,16 +126,17 @@ export default function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow duration-200">
-      <CardContent className="p-4">
-        <div className="relative">
+    <Card className="group hover:shadow-lg transition-all duration-200 border-0 shadow-sm bg-white dark:bg-gray-800 rounded-lg overflow-hidden h-full">
+      <CardContent className="p-2 sm:p-3 h-full flex flex-col">
+        <div className="relative mb-2 sm:mb-3">
           <Link href={`/product/${product.productId}`}>
-            <div className="aspect-square relative mb-3 overflow-hidden rounded-lg bg-gray-100">
+            <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
               <Image
                 src={product.heroImageSignedUrl || "/placeholder.svg?height=200&width=200"}
                 alt={productName}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-200"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               />
             </div>
           </Link>
@@ -136,78 +144,108 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+            className="absolute top-1 right-1 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-white/90 hover:bg-white shadow-sm backdrop-blur-sm p-0"
             onClick={handleToggleFavorite}
             disabled={isLoadingFavorite}
           >
             {isLoadingFavorite ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
             ) : (
-              <Heart className={`h-4 w-4 ${isFavorite ? "fill-brand-primary text-brand-primary" : "text-gray-600"}`} />
+              <Heart
+                className={cn(
+                  "h-3 w-3 sm:h-4 sm:w-4 transition-all duration-200",
+                  isFavorite ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500",
+                )}
+              />
             )}
           </Button>
+
+          <Badge
+            variant="secondary"
+            className="absolute top-1 left-1 text-xs px-1 py-0 bg-green-100 text-green-700 border-0"
+          >
+            Fresh
+          </Badge>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex-1 flex flex-col space-y-1 sm:space-y-2">
           <Link href={`/product/${product.productId}`}>
-            <h3 className="font-medium text-sm line-clamp-2 hover:text-red-600 transition-colors">{productName}</h3>
+            <h3 className="font-medium text-xs sm:text-sm line-clamp-2 hover:text-brand-primary transition-colors leading-tight min-h-[2.5rem] sm:min-h-[2.8rem]">
+              {productName}
+            </h3>
           </Link>
 
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span className="truncate">
               {product.measurementValue} {product.measurementUnit}
+            </span>
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+              <span className="text-xs">Stock</span>
             </div>
-            <Badge variant="secondary" className="text-xs">
-              Fresh
-            </Badge>
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="font-bold text-lg text-brand-primary">₹{product.measurementSellingPrice}</div>
+            <div className="font-bold text-sm sm:text-base text-brand-primary">₹{product.measurementSellingPrice}</div>
+            {product.measurementMrp && product.measurementMrp > product.measurementSellingPrice && (
+              <div className="text-xs text-gray-400 line-through">₹{product.measurementMrp}</div>
+            )}
           </div>
 
-          {cartQuantity > 0 ? (
-            <div className="flex items-center justify-between bg-brand-light dark:bg-brand-dark/20 rounded-lg p-2">
+          <div className="mt-auto pt-1 sm:pt-2">
+            {cartQuantity > 0 ? (
+              <div className="flex items-center justify-between bg-brand-light dark:bg-brand-dark/20 rounded-full p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-7 rounded-full hover:bg-white p-0 flex-shrink-0"
+                  onClick={() => handleUpdateQuantity(cartQuantity - 1)}
+                  disabled={isLoadingQuantity}
+                >
+                  {isLoadingQuantity ? (
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  )}
+                </Button>
+                <span className="font-semibold text-brand-primary text-sm px-2 flex-shrink-0">{cartQuantity}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-7 rounded-full hover:bg-white p-0 flex-shrink-0"
+                  onClick={() => handleUpdateQuantity(cartQuantity + 1)}
+                  disabled={isLoadingQuantity}
+                >
+                  {isLoadingQuantity ? (
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  )}
+                </Button>
+              </div>
+            ) : (
               <Button
-                variant="ghost"
+                onClick={handleAddToCart}
+                disabled={isLoadingCart}
+                className="w-full bg-brand-primary hover:bg-brand-dark text-white rounded-full shadow-sm active:scale-95 transition-all duration-200 h-7 sm:h-8 text-xs sm:text-sm"
                 size="sm"
-                className="h-8 w-8 rounded-full"
-                onClick={() => handleUpdateQuantity(cartQuantity - 1)}
-                disabled={isLoadingQuantity}
               >
-                {isLoadingQuantity ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
+                {isLoadingCart ? (
+                  <>
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 animate-spin" />
+                    <span className="hidden sm:inline">Adding...</span>
+                    <span className="sm:hidden">...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Add</span>
+                    <span className="sm:hidden">+</span>
+                  </>
+                )}
               </Button>
-              <span className="font-medium text-red-600">{cartQuantity}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-full"
-                onClick={() => handleUpdateQuantity(cartQuantity + 1)}
-                disabled={isLoadingQuantity}
-              >
-                {isLoadingQuantity ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={handleAddToCart}
-              disabled={isLoadingCart}
-              className="w-full bg-brand-primary hover:bg-brand-dark text-white"
-              size="sm"
-            >
-              {isLoadingCart ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {t("addToCart")}
-                </>
-              )}
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
