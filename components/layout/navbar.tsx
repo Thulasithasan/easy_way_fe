@@ -87,8 +87,8 @@ export default function Navbar() {
                 <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
 
-              {/* Favorites */}
-              <Link href="/favorites">
+              {/* Favorites - Hidden on mobile */}
+              <Link href="/favorites" className="hidden md:block">
                 <Button variant="ghost" size="sm" className="relative">
                   <Heart className="w-5 h-5" />
                   {favorites.length > 0 && (
@@ -99,8 +99,8 @@ export default function Navbar() {
                 </Button>
               </Link>
 
-              {/* Cart */}
-              <Link href="/cart">
+              {/* Cart - Hidden on mobile */}
+              <Link href="/cart" className="hidden md:block">
                 <Button variant="ghost" size="sm" className="relative">
                   <ShoppingCart className="w-5 h-5" />
                   {cartItems.length > 0 && (
@@ -143,7 +143,7 @@ export default function Navbar() {
                       <DropdownMenuItem>
                         <Link href="/orders">{t("orders")}</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem className="md:hidden">
                         <Link href="/favorites">{t("favorites")}</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
